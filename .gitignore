@@ -1,0 +1,14 @@
+node_modules
+dist
+coverage
+*.log
+.env
+.env.local
+.DS_Store
+.vscode
+.idea
+
+# Build artifacts that nest build emits into libs/
+libs/**/*.js
+libs/**/*.js.map
+libs/**/*.d.ts

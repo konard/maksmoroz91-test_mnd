@@ -1,0 +1,61 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: test_mnd_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-guest}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  producer:
+    build:
+      context: .
+      args:
+        APP: producer
+    container_name: test_mnd_producer
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      RABBITMQ_URI: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672
+      PRODUCER_PORT: 3000
+    ports:
+      - "3000:3000"
+
+  consumer:
+    build:
+      context: .
+      args:
+        APP: consumer
+    container_name: test_mnd_consumer
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      RABBITMQ_URI: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672
+
+  telegram-notifier:
+    build:
+      context: .
+      args:
+        APP: telegram-notifier
+    container_name: test_mnd_telegram_notifier
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      RABBITMQ_URI: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_DRY_RUN: ${TELEGRAM_DRY_RUN:-true}
+
+volumes:
+  rabbitmq_data:
